@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToOne,
 } from 'typeorm';
+import { Offer } from './offer.entity';
 
 @Entity('products')
 export class Product {
@@ -25,6 +27,12 @@ export class Product {
 
   @Column({ type: 'int' })
   stock: number;
+
+  @OneToOne(() => Offer, (offer) => offer.product, {
+    nullable: true,
+    eager: true,
+  })
+  offer: Offer | null;
 
   @CreateDateColumn()
   created_at: Date;
