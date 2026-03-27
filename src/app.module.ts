@@ -6,6 +6,10 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './services/products/products/products.module';
 import { CartModule } from './services/cart/cart.module';
+import { FavoritesModule } from './services/favorite/favorites.module';
+import { AddressesModule } from './services/addresses/addresses.module';
+import { OrdersModule } from './services/orders/orders.module';
+import { UsersModule } from './services/users/users.module';
 
 @Module({
   imports: [
@@ -14,6 +18,10 @@ import { CartModule } from './services/cart/cart.module';
     AuthModule,
     ProductsModule,
     CartModule,
+    FavoritesModule,
+    AddressesModule,
+    OrdersModule,
+    UsersModule,
 
     TypeOrmModule.forRoot({
       type: 'mysql',

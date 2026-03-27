@@ -1,42 +1,32 @@
-// src/cart/entities/cart.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   OneToMany,
   JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { User } from 'src/auth/entities/user.entity';
 import { CartItem } from './cart-item.entity';
-
-export enum CartStatus {
-  ACTIVE = 'active',
-  CHECKED_OUT = 'checked_out',
-  ABANDONED = 'abandoned',
-}
 
 @Entity('carts')
 export class Cart {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'enum', enum: CartStatus, default: CartStatus.ACTIVE })
-  status: CartStatus;
+  @Column({ name: 'user_id', unique: true })
+  userId: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   total: number;
 
-  @ManyToOne(() => User, { eager: false })
+  @ManyToOne(() => User, { eager: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ name: 'user_id' })
-  userId: number;
-
-  @OneToMany(() => CartItem, (cartItem) => cartItem.cart, {
+  @OneToMany(() => CartItem, (item) => item.cart, {
     cascade: true,
     eager: true,
   })

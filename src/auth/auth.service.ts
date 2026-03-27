@@ -1,3 +1,4 @@
+// src/auth/auth.service.ts
 import {
   Injectable,
   ConflictException,
@@ -14,6 +15,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginFirstStepDto } from './dto/login-first-step.dto';
 import { VerifyPinDto } from './dto/verify-pin.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { EmailService } from './email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +25,7 @@ export class AuthService {
     @InjectRepository(VerificationCode)
     private readonly verificationCodeRepository: Repository<VerificationCode>,
     private readonly jwtService: JwtService,
+    private readonly emailService: EmailService,
   ) {}
 
   async register(dto: RegisterDto): Promise<{ message: string }> {
@@ -87,7 +90,16 @@ export class AuthService {
       expires_at: expiresAt,
     });
 
-    console.log(`PIN para ${dto.email}: ${pin}`);
+    // Enviar email con el PIN
+    try {
+      await this.emailService.sendVerificationPin(dto.email, pin);
+      console.log(`PIN enviado a ${dto.email}: ${pin}`); // Solo para desarrollo
+    } catch (error) {
+      console.error('Error al enviar email:', error);
+      throw new BadRequestException(
+        'Error al enviar el código de verificación',
+      );
+    }
 
     const tempToken = this.jwtService.sign(
       {
@@ -101,7 +113,7 @@ export class AuthService {
 
     return {
       temp_token: tempToken,
-      message: 'Código de verificación enviado',
+      message: 'Código de verificación enviado a tu correo electrónico',
       requires_2fa: true,
     };
   }
