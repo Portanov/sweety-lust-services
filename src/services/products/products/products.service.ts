@@ -43,23 +43,18 @@ export class ProductsService {
     }
   }
 
-  async findAll(page = 1, limit = 10, search?: string) {
-    const skip = (page - 1) * limit;
+  async findAll(search?: string) {
     const where: FindOptionsWhere<Product> = {};
     if (search) where.title = Like(`%${search}%`);
 
-    const [products, total] = await this.productRepository.findAndCount({
+    const products = await this.productRepository.find({
       where,
-      skip,
-      take: limit,
       order: { created_at: 'DESC' },
     });
 
     return {
       products: products.map((p) => this.attachOfferPrice(p)),
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
+      total: products.length,
     };
   }
 
@@ -229,6 +224,9 @@ export class ProductsService {
     });
   }
 
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  // Calcula el precio final según el tipo de oferta y lo agrega al producto
   private attachOfferPrice(
     product: Product,
   ): Product & { final_price?: number } {

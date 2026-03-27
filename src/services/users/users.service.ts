@@ -63,16 +63,13 @@ export class UsersService {
     if (!user) throw new NotFoundException('Usuario no encontrado');
 
     const storedHash = user.password.toString('utf8');
-    const isMatch = (await bcrypt.compare(
-      dto.current_password,
-      storedHash,
-    )) as boolean;
+    const isMatch = await bcrypt.compare(dto.current_password, storedHash);
 
     if (!isMatch) {
       throw new UnauthorizedException('La contraseña actual es incorrecta');
     }
 
-    const newHash = (await bcrypt.hash(dto.new_password, 10)) as string;
+    const newHash = await bcrypt.hash(dto.new_password, 10);
     await this.userRepository.update(userId, {
       password: Buffer.from(newHash),
     });
@@ -100,7 +97,7 @@ export class UsersService {
     if (exists)
       throw new ConflictException('El email o username ya está en uso');
 
-    const hashedPassword = (await bcrypt.hash(dto.password, 10)) as string;
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
 
     const user = this.userRepository.create({
       username: dto.username,

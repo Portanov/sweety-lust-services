@@ -35,12 +35,8 @@ export class ProductsController {
   }
 
   @Get()
-  findAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-    @Query('search') search?: string,
-  ) {
-    return this.productsService.findAll(+page, +limit, search);
+  findAll(@Query('search') search?: string) {
+    return this.productsService.findAll(search);
   }
 
   @Get('best-sellers')
