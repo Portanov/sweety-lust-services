@@ -7,6 +7,7 @@ import {
   OneToOne,
 } from 'typeorm';
 import { Offer } from './offer.entity';
+import { ProductCategory } from './product-category.enum';
 
 @Entity('products')
 export class Product {
@@ -27,6 +28,13 @@ export class Product {
 
   @Column({ type: 'int' })
   stock: number;
+
+  @Column({
+    type: 'enum',
+    enum: ProductCategory,
+    default: ProductCategory.OTROS,
+  })
+  category: ProductCategory;
 
   @OneToOne(() => Offer, (offer) => offer.product, {
     nullable: true,

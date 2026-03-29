@@ -1,0 +1,15 @@
+export enum ProductCategory {
+  DISFRACES = 'disfraces',
+  VIBRADORES = 'vibradores',
+  JUGUETES = 'juguetes',
+  LENCERIA = 'lenceria',
+  ACCESORIOS = 'accesorios',
+  LUBRICANTES = 'lubricantes',
+  CONDONES = 'condones',
+  JUEGOS = 'juegos',
+  ACEITES = 'aceites',
+  BONDAGE = 'bondage',
+  MASCARAS = 'mascaras',
+  MUÑECAS = 'muñecas',
+  OTROS = 'otros',
+}

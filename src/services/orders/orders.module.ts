@@ -5,7 +5,7 @@ import { OrderTracking } from './entities/order-tracking.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
-import { ProductsModule } from '../products/products/products.module';
+import { ProductsModule } from '../products/products.module';
 
 @Module({
   imports: [
@@ -16,4 +16,4 @@ import { ProductsModule } from '../products/products/products.module';
   providers: [OrdersService],
   exports: [OrdersService],
 })
-export class OrdersModule {}
+export class OrdersModule { }

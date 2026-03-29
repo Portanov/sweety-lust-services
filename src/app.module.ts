@@ -4,7 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { ProductsModule } from './services/products/products/products.module';
+import { ProductsModule } from './services/products/products.module';
 import { CartModule } from './services/cart/cart.module';
 import { FavoritesModule } from './services/favorite/favorites.module';
 import { AddressesModule } from './services/addresses/addresses.module';
@@ -37,4 +37,4 @@ import { UsersModule } from './services/users/users.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

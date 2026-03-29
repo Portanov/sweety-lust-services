@@ -7,7 +7,7 @@ import { CartItem } from './entities/cart-item.entity';
 import { Order } from '../orders/entities/order.entity';
 import { OrderItem } from '../orders/entities/order-item.entity';
 import { OrderTracking } from '../orders/entities/order-tracking.entity';
-import { ProductsModule } from '../products/products/products.module';
+import { ProductsModule } from '../products/products.module';
 
 @Module({
   imports: [
@@ -18,4 +18,4 @@ import { ProductsModule } from '../products/products/products.module';
   providers: [CartService],
   exports: [CartService],
 })
-export class CartModule {}
+export class CartModule { }

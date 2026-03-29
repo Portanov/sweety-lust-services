@@ -12,9 +12,10 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { CreateProductDto } from '../dto/create-product.dto';
-import { UpdateProductDto } from '../dto/update-product.dto';
-import { CreateOfferDto, UpdateOfferDto } from '../dto/offer.dto';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { CreateOfferDto, UpdateOfferDto } from './dto/offer.dto';
+import { ProductCategory } from './entities/product-category.enum';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
@@ -34,9 +35,37 @@ export class ProductsController {
     return this.productsService.create(dto);
   }
 
+  // GET /api/products
+  // GET /api/products?search=vestido
+  // GET /api/products?category=ropa
+  // GET /api/products?minPrice=100&maxPrice=500
+  // GET /api/products?onSale=true
+  // GET /api/products?inStock=true
+  // GET /api/products?category=ropa&minPrice=100&onSale=true  (combinados)
   @Get()
-  findAll(@Query('search') search?: string) {
-    return this.productsService.findAll(search);
+  findAll(
+    @Query('search') search?: string,
+    @Query('category') category?: ProductCategory,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('onSale') onSale?: string,
+    @Query('inStock') inStock?: string,
+  ) {
+    return this.productsService.findAll({
+      search,
+      category,
+      minPrice: minPrice ? parseFloat(minPrice) : undefined,
+      maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      onSale: onSale === 'true',
+      inStock: inStock === 'true',
+    });
+  }
+
+  // ✅ Devuelve todas las categorías con su conteo de productos
+  // GET /api/products/categories
+  @Get('categories')
+  getCategories() {
+    return this.productsService.getCategories();
   }
 
   @Get('best-sellers')
@@ -81,7 +110,7 @@ export class ProductsController {
     return this.productsService.updateStock(+id, quantity);
   }
 
-  // ── Ofertas (admin) ────────────────────────────────────────────────────────
+  // ── Ofertas ────────────────────────────────────────────────────────────────
 
   @Post(':id/offers')
   @UseGuards(JwtAuthGuard, RolesGuard)

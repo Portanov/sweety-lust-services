@@ -9,16 +9,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         transport: {
-          host: configService.get('EMAIL_HOST'),
-          port: configService.get('EMAIL_PORT'),
-          secure: false,
+          host: configService.get('BREVO_SMTP_HOST'),
+          port: configService.get('BREVO_SMTP_PORT'),
+          secure: configService.get('BREVO_EMAIL_SECURE') === 'true',
           auth: {
-            user: configService.get('EMAIL_AUTH_USER'),
-            pass: configService.get('EMAIL_AUTH_PASSWORD'),
+            user: configService.get('BREVO_SMTP_USER'),
+            pass: configService.get('BREVO_SMTP_PASSWORD'),
           },
         },
         defaults: {
-          from: `"${configService.get('EMAIL_FROM_USER_NAME')}" <${configService.get('EMAIL_AUTH_USER')}>`,
+          from: `"${configService.get('BREVO_FROM_NAME')}" <${configService.get('BREVO_FROM_EMAIL')}>`,
         },
       }),
       inject: [ConfigService],

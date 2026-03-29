@@ -1,5 +1,14 @@
-import { IsString, IsNumber, Min, MaxLength, IsUrl } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsOptional,
+  Min,
+  MaxLength,
+  IsUrl,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
+import { ProductCategory } from '../entities/product-category.enum';
 
 export class CreateProductDto {
   @IsString()
@@ -15,11 +24,17 @@ export class CreateProductDto {
 
   @IsNumber()
   @Min(0)
-  @Transform(({ value }) => parseFloat(value))
+  @Transform(({ value }: { value: unknown }) => parseFloat(value as string))
   price: number;
 
   @IsNumber()
   @Min(0)
-  @Transform(({ value }) => parseInt(value))
+  @Transform(({ value }: { value: unknown }) => parseInt(value as string))
   stock: number;
+
+  @IsOptional()
+  @IsEnum(ProductCategory, {
+    message: `La categoría debe ser una de: ${Object.values(ProductCategory).join(', ')}`,
+  })
+  category?: ProductCategory;
 }

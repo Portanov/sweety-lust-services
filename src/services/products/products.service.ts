@@ -12,14 +12,26 @@ import {
   IsNull,
   LessThanOrEqual,
   MoreThanOrEqual,
+  Between,
+  MoreThan,
 } from 'typeorm';
-import { Product } from '../entities/product.entity';
-import { Offer } from '../entities/offer.entity';
+import { Product } from './entities/product.entity';
+import { Offer } from './entities/offer.entity';
 import { OrderItem } from 'src/services/orders/entities/order-item.entity';
-import { OfferType } from '../entities/offer-type.enum';
-import { CreateProductDto } from '../dto/create-product.dto';
-import { UpdateProductDto } from '../dto/update-product.dto';
-import { CreateOfferDto, UpdateOfferDto } from '../dto/offer.dto';
+import { OfferType } from './entities/offer-type.enum';
+import { ProductCategory } from './entities/product-category.enum';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { CreateOfferDto, UpdateOfferDto } from './dto/offer.dto';
+
+export interface ProductFilters {
+  search?: string;
+  category?: ProductCategory;
+  minPrice?: number;
+  maxPrice?: number;
+  onSale?: boolean;
+  inStock?: boolean;
+}
 
 @Injectable()
 export class ProductsService {
@@ -43,19 +55,55 @@ export class ProductsService {
     }
   }
 
-  async findAll(search?: string) {
-    const where: FindOptionsWhere<Product> = {};
-    if (search) where.title = Like(`%${search}%`);
+  // ✅ findAll ahora acepta todos los filtros
+  async findAll(filters: ProductFilters = {}) {
+    const { search, category, minPrice, maxPrice, onSale, inStock } = filters;
 
-    const products = await this.productRepository.find({
+    const where: FindOptionsWhere<Product> = {};
+
+    if (search) where.title = Like(`%${search}%`);
+    if (category) where.category = category;
+    if (inStock) where.stock = MoreThan(0);
+
+    if (minPrice !== undefined && maxPrice !== undefined) {
+      where.price = Between(minPrice, maxPrice);
+    } else if (minPrice !== undefined) {
+      where.price = MoreThanOrEqual(minPrice);
+    } else if (maxPrice !== undefined) {
+      where.price = LessThanOrEqual(maxPrice);
+    }
+
+    let products = await this.productRepository.find({
       where,
       order: { created_at: 'DESC' },
     });
+
+    if (onSale) {
+      products = products.filter((p) => this.hasActiveOffer(p));
+    }
 
     return {
       products: products.map((p) => this.attachOfferPrice(p)),
       total: products.length,
     };
+  }
+
+  // Devuelve todas las categorías disponibles con su conteo de productos
+  async getCategories() {
+    const result = await this.productRepository
+      .createQueryBuilder('p')
+      .select('p.category', 'category')
+      .addSelect('COUNT(p.id)', 'count')
+      .groupBy('p.category')
+      .orderBy('count', 'DESC')
+      .getRawMany<{ category: ProductCategory; count: string }>();
+
+    const withCount = Object.values(ProductCategory).map((cat) => {
+      const found = result.find((r) => r.category === cat);
+      return { category: cat, count: found ? parseInt(found.count) : 0 };
+    });
+
+    return withCount;
   }
 
   async findOne(id: number): Promise<Product> {
@@ -90,7 +138,6 @@ export class ProductsService {
 
   // ── Destacados ─────────────────────────────────────────────────────────────
 
-  // Top 3 productos más comprados según order_items
   async getBestSellers(): Promise<Product[]> {
     const top = await this.orderItemRepository
       .createQueryBuilder('oi')
@@ -112,7 +159,6 @@ export class ProductsService {
       .map((p) => this.attachOfferPrice(p));
   }
 
-  // Últimos 5 productos agregados
   async getNewArrivals(): Promise<Product[]> {
     const products = await this.productRepository.find({
       order: { created_at: 'DESC' },
@@ -121,7 +167,6 @@ export class ProductsService {
     return products.map((p) => this.attachOfferPrice(p));
   }
 
-  // Todos los productos con oferta activa en este momento
   async getProductsOnSale(): Promise<Product[]> {
     const now = new Date();
     const offers = await this.offerRepository.find({
@@ -140,7 +185,7 @@ export class ProductsService {
     return offers.map((o) => this.attachOfferPrice(o.product));
   }
 
-  // ── Ofertas (CRUD solo para admins) ────────────────────────────────────────
+  // ── Ofertas ────────────────────────────────────────────────────────────────
 
   async createOffer(productId: number, dto: CreateOfferDto): Promise<Offer> {
     const product = await this.productRepository.findOne({
@@ -151,11 +196,10 @@ export class ProductsService {
     const existing = await this.offerRepository.findOne({
       where: { productId, is_active: true },
     });
-    if (existing) {
+    if (existing)
       throw new ConflictException(
         'Este producto ya tiene una oferta activa. Desactívala antes de crear una nueva.',
       );
-    }
 
     this.validateOfferValues(dto);
 
@@ -226,18 +270,21 @@ export class ProductsService {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  // Calcula el precio final según el tipo de oferta y lo agrega al producto
-  private attachOfferPrice(
-    product: Product,
-  ): Product & { final_price?: number } {
+  private hasActiveOffer(product: Product): boolean {
     const offer = product.offer;
-    if (!offer || !offer.is_active) return product;
-
+    if (!offer || !offer.is_active) return false;
     const now = new Date();
     const started = !offer.starts_at || offer.starts_at <= now;
     const notEnded = !offer.ends_at || offer.ends_at >= now;
-    if (!started || !notEnded) return product;
+    return started && notEnded;
+  }
 
+  private attachOfferPrice(
+    product: Product,
+  ): Product & { final_price?: number } {
+    if (!this.hasActiveOffer(product)) return product;
+
+    const offer = product.offer!;
     const price = Number(product.price);
     let final_price: number | undefined;
 
@@ -271,21 +318,18 @@ export class ProductsService {
         !dto.discount_value ||
         dto.discount_value <= 0 ||
         dto.discount_value >= 100
-      ) {
+      )
         throw new BadRequestException('El porcentaje debe estar entre 1 y 99');
-      }
     }
-    if (dto.type === OfferType.FIXED_PRICE && !dto.discount_value) {
+    if (dto.type === OfferType.FIXED_PRICE && !dto.discount_value)
       throw new BadRequestException('El precio fijo es requerido');
-    }
     if (dto.type === OfferType.BUNDLE) {
       if (!dto.discount_value)
         throw new BadRequestException('El precio del bundle es requerido');
-      if (!dto.bundle_quantity || dto.bundle_quantity < 2) {
+      if (!dto.bundle_quantity || dto.bundle_quantity < 2)
         throw new BadRequestException(
           'La cantidad del bundle debe ser mínimo 2',
         );
-      }
     }
   }
 }

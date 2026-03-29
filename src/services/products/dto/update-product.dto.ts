@@ -1,16 +1,18 @@
 import {
   IsString,
   IsNumber,
+  IsEnum,
   IsOptional,
   Min,
   MaxLength,
   IsUrl,
 } from 'class-validator';
+import { ProductCategory } from '../entities/product-category.enum';
 
 export class UpdateProductDto {
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(255)
   title?: string;
 
   @IsOptional()
@@ -30,4 +32,10 @@ export class UpdateProductDto {
   @IsNumber()
   @Min(0)
   stock?: number;
+
+  @IsOptional()
+  @IsEnum(ProductCategory, {
+    message: `La categoría debe ser una de: ${Object.values(ProductCategory).join(', ')}`,
+  })
+  category?: ProductCategory;
 }
