@@ -4,25 +4,17 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { ProductsModule } from './services/products/products.module';
-import { CartModule } from './services/cart/cart.module';
-import { FavoritesModule } from './services/favorite/favorites.module';
+import { UsersModule } from './services/users/users.module';
 import { AddressesModule } from './services/addresses/addresses.module';
 import { OrdersModule } from './services/orders/orders.module';
-import { UsersModule } from './services/users/users.module';
+import { CartModule } from './services/cart/cart.module';
+import { CacheModule } from './services/common/cache/cache.module';
+import { FavoritesModule } from './services/favorite/favorites.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-
-    AuthModule,
-    ProductsModule,
-    CartModule,
-    FavoritesModule,
-    AddressesModule,
-    OrdersModule,
-    UsersModule,
-
+    CacheModule,
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.DB_HOST ?? 'localhost',
@@ -31,10 +23,25 @@ import { UsersModule } from './services/users/users.module';
       password: process.env.DB_PASS ?? 'root',
       database: process.env.DB_NAME ?? 'sweetylust',
       autoLoadEntities: true,
-      synchronize: true, // ⚠️ solo en desarrollo
+      synchronize: process.env.NODE_ENV !== 'production',
+      extra: {
+        connectionLimit: 10,
+        waitForConnections: true,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 60000,
+      },
+      retryAttempts: 5,
+      retryDelay: 3000,
     }),
+    AuthModule,
+    UsersModule,
+    AddressesModule,
+    OrdersModule,
+    CartModule,
+    FavoritesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

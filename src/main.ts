@@ -7,6 +7,8 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import type { FastifyRequest, FastifyReply } from 'fastify';
+import { fastifyCompress } from '@fastify/compress';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -22,6 +24,20 @@ async function bootstrap() {
       error: 'Too Many Requests',
       message: 'Demasiadas solicitudes, intenta más tarde',
     }),
+  });
+
+  await adapter.register(fastifyCompress, {
+    global: true,
+    threshold: 512,
+    encodings: ['gzip', 'deflate'],
+    brotli: false,
+    zlib: {
+      level: 6,
+      memLevel: 8,
+    },
+    filter: (req: FastifyRequest, _reply: FastifyReply) => {
+      return req.method === 'GET' || req.method === 'POST';
+    },
   });
 
   const app = await NestFactory.create<NestFastifyApplication>(

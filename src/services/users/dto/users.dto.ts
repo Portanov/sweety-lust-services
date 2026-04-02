@@ -29,9 +29,8 @@ export class UpdateProfileDto {
   phone?: number;
 
   @IsOptional()
-  @IsDateString()
-  @Transform(({ value }: { value: unknown }) => new Date(value as string))
-  birth_date?: Date;
+  @IsString()
+  birth_date?: string;
 }
 
 export class ChangePasswordDto {
