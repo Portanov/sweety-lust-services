@@ -18,7 +18,7 @@ async function bootstrap() {
 
   /**
    * Registro de Plugins
-   * Usamos 'as any' para evitar el error de incompatibilidad de tipos entre 
+   * Usamos 'as any' para evitar el error de incompatibilidad de tipos entre
    * las definiciones de RawServer de Fastify y el adaptador de NestJS.
    */
 
@@ -54,7 +54,11 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: ['http://localhost:4200'],
+    origin: [
+      'http://localhost:4200',
+      'https://sweetylust.com',
+      'https://api.sweetylust.com',
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
