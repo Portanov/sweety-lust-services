@@ -7,24 +7,24 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import type { FastifyRequest, FastifyReply } from 'fastify';
 import { fastifyCompress } from '@fastify/compress';
+import type { FastifyRequest } from 'fastify';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
+  // Inicializamos el adaptador de Fastify
   const adapter = new FastifyAdapter({ logger: true });
 
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    adapter,
-  );
+  /**
+   * Registro de Plugins
+   * Usamos 'as any' para evitar el error de incompatibilidad de tipos entre 
+   * las definiciones de RawServer de Fastify y el adaptador de NestJS.
+   */
 
-  const fastifyInstance = app.getHttpAdapter().getInstance();
+  await adapter.register(helmet as any);
 
-  await fastifyInstance.register(helmet);
-
-  await fastifyInstance.register(rateLimit, {
+  await adapter.register(rateLimit as any, {
     max: 60,
     timeWindow: '1 minute',
     errorResponseBuilder: () => ({
@@ -34,16 +34,28 @@ async function bootstrap() {
     }),
   });
 
-  // ✅ Configuración SIMPLIFICADA (sin brotli ni zlib)
-  await fastifyInstance.register(fastifyCompress, {
+  await adapter.register(fastifyCompress as any, {
     global: true,
     threshold: 512,
     encodings: ['gzip', 'deflate'],
+    brotli: false,
+    zlib: {
+      level: 6,
+      memLevel: 8,
+    },
+    filter: (req: FastifyRequest) => {
+      return req.method === 'GET' || req.method === 'POST';
+    },
   });
+
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    adapter,
+  );
 
   app.enableCors({
     origin: ['http://localhost:4200'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
@@ -59,6 +71,8 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   await app.listen(3000, '0.0.0.0');
-  logger.log('🚀 Servidor corriendo en http://0.0.0.0:3000/api');
+
+  logger.log('🚀 Servidor corriendo en http://localhost:3000/api');
 }
+
 bootstrap();
