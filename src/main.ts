@@ -15,8 +15,16 @@ async function bootstrap() {
 
   const adapter = new FastifyAdapter({ logger: true });
 
-  await adapter.register(helmet);
-  await adapter.register(rateLimit, {
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    adapter,
+  );
+
+  const fastifyInstance = app.getHttpAdapter().getInstance();
+
+  await fastifyInstance.register(helmet);
+
+  await fastifyInstance.register(rateLimit, {
     max: 60,
     timeWindow: '1 minute',
     errorResponseBuilder: () => ({
@@ -26,28 +34,16 @@ async function bootstrap() {
     }),
   });
 
-  await adapter.register(fastifyCompress, {
+  // ✅ Configuración SIMPLIFICADA (sin brotli ni zlib)
+  await fastifyInstance.register(fastifyCompress, {
     global: true,
     threshold: 512,
     encodings: ['gzip', 'deflate'],
-    brotli: false,
-    zlib: {
-      level: 6,
-      memLevel: 8,
-    },
-    filter: (req: FastifyRequest, _reply: FastifyReply) => {
-      return req.method === 'GET' || req.method === 'POST';
-    },
   });
-
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    adapter,
-  );
 
   app.enableCors({
     origin: ['http://localhost:4200'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
@@ -63,6 +59,6 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   await app.listen(3000, '0.0.0.0');
-  logger.log('🚀 Servidor corriendo en http://localhost:3000/api');
+  logger.log('🚀 Servidor corriendo en http://0.0.0.0:3000/api');
 }
 bootstrap();
