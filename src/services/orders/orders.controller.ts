@@ -75,7 +75,7 @@ export class OrdersController {
     return this.ordersService.cancelOrderAdmin(id);
   }
 
-  @Post(':id/tracking')
+  @Patch(':id/tracking')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   addTracking(

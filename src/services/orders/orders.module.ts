@@ -6,14 +6,17 @@ import { OrderItem } from './entities/order-item.entity';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { ProductsModule } from '../products/products.module';
+import { ConfigModule } from '@nestjs/config';
+import { EncryptionService } from '../common/encryption.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order, OrderTracking, OrderItem]),
     ProductsModule,
+    ConfigModule,
   ],
   controllers: [OrdersController],
-  providers: [OrdersService],
+  providers: [OrdersService, EncryptionService],
   exports: [OrdersService],
 })
-export class OrdersModule { }
+export class OrdersModule {}

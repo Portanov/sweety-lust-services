@@ -78,12 +78,18 @@ export class CartController {
     @Request() req: { user: { id: number } },
     @Body() checkoutDto: CheckoutDto,
   ) {
-    const order = await this.cartService.checkout(req.user.id, checkoutDto);
-    return {
-      message: 'Compra realizada exitosamente',
-      orderId: order.id,
-      status: order.status,
-      tracking: order.tracking,
-    };
+    const result = await this.cartService.createStripeSession(
+      req.user.id,
+      checkoutDto.addressId,
+    );
+    return result;
+  }
+
+  @Post('confirm-payment')
+  async confirmPayment(
+    @Request() req: { user: { id: number } },
+    @Body() checkoutDto: CheckoutDto,
+  ) {
+    return await this.cartService.checkout(req.user.id, checkoutDto);
   }
 }

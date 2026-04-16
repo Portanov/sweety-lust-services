@@ -11,6 +11,8 @@ import { OrderItem } from './entities/order-item.entity';
 import { OrderTracking } from './entities/order-tracking.entity';
 import { OrderStatus } from './entities/order-status.enum';
 import { Product } from '../products/entities/product.entity';
+import { DeliveryAddress } from '../addresses/entities/delivery-address.entity';
+import { EncryptionService } from '../common/encryption.service';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class AddTrackingDto {
@@ -33,11 +35,11 @@ export class OrdersService {
     private readonly trackingRepository: Repository<OrderTracking>,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    private readonly encryption: EncryptionService,
   ) {}
 
   // ── Para el usuario ────────────────────────────────────────────────────────
 
-  // Todas las órdenes del usuario autenticado
   async getMyOrders(userId: number) {
     const orders = await this.orderRepository.find({
       where: { userId },
@@ -48,7 +50,6 @@ export class OrdersService {
     return orders.map((o) => this.formatOrder(o));
   }
 
-  // Detalle de una orden — verifica que pertenezca al usuario
   async getMyOrderDetail(orderId: number, userId: number) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
@@ -68,7 +69,7 @@ export class OrdersService {
     };
   }
 
-  // ── Seguimiento público (sin auth) ────────────────────────────────────────
+  // ── Seguimiento público ───────────────────────────────────────────────────
 
   async getPublicTracking(orderId: number) {
     const order = await this.orderRepository.findOne({
@@ -90,7 +91,6 @@ export class OrdersService {
 
   // ── Para administradores ──────────────────────────────────────────────────
 
-  // Todas las órdenes del sistema
   async getAllOrders() {
     const orders = await this.orderRepository.find({
       relations: ['items', 'items.product', 'address', 'user'],
@@ -99,7 +99,6 @@ export class OrdersService {
     return orders.map((o) => this.formatOrder(o));
   }
 
-  // Detalle completo de cualquier orden
   async getOrderDetail(orderId: number) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
@@ -116,7 +115,6 @@ export class OrdersService {
     };
   }
 
-  // Registra un evento de seguimiento y actualiza el estado
   async addTracking(orderId: number, dto: AddTrackingDto) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
@@ -134,9 +132,8 @@ export class OrdersService {
     return event;
   }
 
-  // ── Cancelación ──────────────────────────────────────────────────────────
+  // ── Cancelación ───────────────────────────────────────────────────────────
 
-  // Estados que ya no permiten cancelación
   private readonly NON_CANCELLABLE = [
     OrderStatus.ENVIADO,
     OrderStatus.EN_CAMINO,
@@ -144,7 +141,6 @@ export class OrdersService {
     OrderStatus.CANCELADO,
   ];
 
-  // El usuario cancela su propia orden
   async cancelMyOrder(orderId: number, userId: number) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
@@ -164,7 +160,6 @@ export class OrdersService {
     return this.applyCancel(order);
   }
 
-  // El admin cancela cualquier orden (solo bloquea si ya está entregada)
   async cancelOrderAdmin(orderId: number) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
@@ -172,21 +167,16 @@ export class OrdersService {
     });
 
     if (!order) throw new NotFoundException('Orden no encontrada');
-
-    if (order.status === OrderStatus.ENTREGADO) {
+    if (order.status === OrderStatus.ENTREGADO)
       throw new BadRequestException(
         'No se puede cancelar una orden ya entregada.',
       );
-    }
-
-    if (order.status === OrderStatus.CANCELADO) {
+    if (order.status === OrderStatus.CANCELADO)
       throw new BadRequestException('La orden ya está cancelada.');
-    }
 
     return this.applyCancel(order);
   }
 
-  // Lógica compartida de cancelación: regresa el stock y registra el evento
   private async applyCancel(order: Order) {
     for (const item of order.items) {
       await this.productRepository.increment(
@@ -213,13 +203,43 @@ export class OrdersService {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
+  private decryptAddress(address: DeliveryAddress | null) {
+    if (!address) return null;
+
+    try {
+      return {
+        id: address.id,
+        recipient_name: address.recipient_name,
+        recipient_phone: this.encryption.decrypt(address.recipient_phone),
+        street: this.encryption.decrypt(address.street),
+        ext_number: this.encryption.decrypt(address.ext_number),
+        int_number: address.int_number,
+        neighborhood: this.encryption.decrypt(address.neighborhood),
+        city: address.city,
+        state: address.state,
+        postal_code: address.postal_code,
+        references: address.references,
+        is_default: address.is_default,
+      };
+    } catch {
+      return {
+        id: address.id,
+        recipient_name: address.recipient_name,
+        city: address.city,
+        state: address.state,
+        postal_code: address.postal_code,
+        is_default: address.is_default,
+      };
+    }
+  }
+
   private formatOrder(order: Order) {
     return {
       id: order.id,
       status: order.status,
       total: order.total,
       created_at: order.created_at,
-      address: order.address,
+      address: this.decryptAddress(order.address ?? null),
       user: order.user
         ? {
             id: order.user.id,

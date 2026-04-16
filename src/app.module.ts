@@ -23,7 +23,7 @@ import { FavoritesModule } from './services/favorite/favorites.module';
       password: process.env.DB_PASS ?? 'root',
       database: process.env.DB_NAME ?? 'sweetylust',
       autoLoadEntities: true,
-      synchronize: process.env.NODE_ENV !== 'production',
+      synchronize: true,
       extra: {
         connectionLimit: 10,
         waitForConnections: true,

@@ -39,8 +39,8 @@ export class Offer {
   @Column({ type: 'int', nullable: true })
   bundle_quantity: number | null;
 
-  @Column({ type: 'boolean', default: true })
-  is_active: boolean;
+  @Column({ type: 'boolean', nullable: true, default: null })
+  is_active: boolean | null;
 
   // null = sin fecha de fin (liquidación permanente)
   @Column({ type: 'datetime', nullable: true })

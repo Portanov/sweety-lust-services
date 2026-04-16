@@ -44,18 +44,20 @@ export class CreateOfferDto {
   @Max(99)
   percentage_value?: number;
 
+  // Opcional: si no se envía, la oferta comienza desde el día que se crea
   @IsOptional()
   @IsDateString()
-  starts_at?: string;
+  starts_at?: string | null;
 
-  // null = liquidación permanente
+  // Opcional: null = oferta permanente, con fecha = oferta temporal
   @IsOptional()
   @IsDateString()
   ends_at?: string | null;
 
+  // Opcional: null si tiene fecha de terminación, true si es oferta permanente
   @IsOptional()
   @IsBoolean()
-  is_active?: boolean;
+  is_active?: boolean | null;
 }
 
 export class UpdateOfferDto {

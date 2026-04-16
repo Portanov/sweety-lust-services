@@ -15,9 +15,11 @@ import { OrderStatus } from '../orders/entities/order-status.enum';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { CheckoutDto } from './dto/checkout.dto';
+import Stripe from 'stripe';
 
 @Injectable()
 export class CartService {
+  private stripe: any;
   constructor(
     @InjectRepository(Cart)
     private readonly cartRepository: Repository<Cart>,
@@ -31,7 +33,32 @@ export class CartService {
     private readonly orderItemRepository: Repository<OrderItem>,
     @InjectRepository(OrderTracking)
     private readonly trackingRepository: Repository<OrderTracking>,
-  ) {}
+  ) {
+    this.stripe = new Stripe(
+      'sk_test_51TMZrDCQ4kq5OuBvI6eeelgvh3FNQCdXViUPUdblRPBGUU2W8rKuRZZNz85uHTvcGPlL39qT8ew8MgQsOHi9lAhs00VHAo9N13',
+    );
+  }
+
+  async createStripeSession(userId: number, addressId: number) {
+    const summary = await this.getCartSummary(userId);
+
+    const session = await this.stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: summary.items.map((item) => ({
+        price_data: {
+          currency: 'mxn',
+          product_data: { name: item.product.title },
+          unit_amount: Math.round(item.product.price * 100),
+        },
+        quantity: item.quantity,
+      })),
+      success_url: `http://localhost:4200/cart?success=true&addressId=${addressId}`,
+      cancel_url: `http://localhost:4200/cart?canceled=true`,
+    });
+
+    return { url: session.url };
+  }
 
   /** Obtiene el carrito activo del usuario */
   async getActiveCart(userId: number): Promise<Cart> {

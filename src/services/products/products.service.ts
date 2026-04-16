@@ -193,15 +193,36 @@ export class ProductsService {
     });
     if (!product) throw new NotFoundException('Producto no encontrado');
 
-    const existing = await this.offerRepository.findOne({
-      where: { productId, is_active: true },
-    });
-    if (existing)
-      throw new ConflictException(
-        'Este producto ya tiene una oferta activa. Desactívala antes de crear una nueva.',
+    if (dto.ends_at && dto.is_active !== null && dto.is_active !== undefined) {
+      throw new BadRequestException(
+        'Las ofertas temporales (con fecha de terminación) deben tener is_active = null',
       );
+    }
+
+    if (!dto.ends_at && dto.is_active !== true) {
+      throw new BadRequestException(
+        'Las ofertas permanentes (sin fecha de terminación) deben tener is_active = true',
+      );
+    }
+
+    const permanentActiveOffer = await this.offerRepository.findOne({
+      where: {
+        productId,
+        is_active: true,
+        ends_at: IsNull(),
+      },
+    });
+
+    if (permanentActiveOffer) {
+      throw new ConflictException(
+        'Este producto ya tiene una oferta permanente activa. Desactívala antes de crear una nueva.',
+      );
+    }
+
+    await this.validateNoDateOverlap(productId, dto.starts_at, dto.ends_at);
 
     this.validateOfferValues(dto);
+    const startsAt = dto.starts_at ? new Date(dto.starts_at) : new Date();
 
     const offer = this.offerRepository.create({
       productId,
@@ -209,8 +230,8 @@ export class ProductsService {
       label: dto.label,
       discount_value: dto.discount_value ?? null,
       bundle_quantity: dto.bundle_quantity ?? null,
-      is_active: dto.is_active ?? true,
-      starts_at: dto.starts_at ? new Date(dto.starts_at) : null,
+      is_active: dto.is_active ?? null,
+      starts_at: startsAt,
       ends_at: dto.ends_at ? new Date(dto.ends_at) : null,
     });
 
@@ -222,6 +243,41 @@ export class ProductsService {
       where: { id: offerId },
     });
     if (!offer) throw new NotFoundException('Oferta no encontrada');
+
+    const newEndsAt = dto.ends_at !== undefined ? dto.ends_at : offer.ends_at;
+    const newIsActive =
+      dto.is_active !== undefined ? dto.is_active : offer.is_active;
+    if (newEndsAt && newIsActive !== null && newIsActive !== undefined) {
+      throw new BadRequestException(
+        'Las ofertas temporales (con fecha de terminación) deben tener is_active = null',
+      );
+    }
+
+    if (!newEndsAt && newIsActive !== true) {
+      throw new BadRequestException(
+        'Las ofertas permanentes (sin fecha de terminación) deben tener is_active = true',
+      );
+    }
+
+    if (
+      offer.ends_at === null &&
+      offer.is_active === true &&
+      newIsActive !== true
+    ) {
+      // Permitir la desactivación de oferta permanente
+    }
+
+    if (dto.starts_at !== undefined || dto.ends_at !== undefined) {
+      const newStartsAt =
+        dto.starts_at !== undefined ? new Date(dto.starts_at) : offer.starts_at;
+      const newEndsAtDate = newEndsAt ? new Date(newEndsAt) : null;
+      await this.validateNoDateOverlap(
+        offer.productId,
+        newStartsAt?.toISOString(),
+        newEndsAtDate?.toISOString(),
+        offerId,
+      );
+    }
 
     Object.assign(offer, {
       ...(dto.label !== undefined && { label: dto.label }),
@@ -262,27 +318,50 @@ export class ProductsService {
   }
 
   async getOffersByProduct(productId: number): Promise<Offer[]> {
-    return this.offerRepository.find({
-      where: { productId },
+    const now = new Date();
+    const offers = await this.offerRepository.find({
+      where: [
+        { productId, is_active: true, ends_at: IsNull() },
+        {
+          productId,
+          is_active: true,
+          starts_at: LessThanOrEqual(now),
+          ends_at: MoreThanOrEqual(now),
+        },
+        {
+          productId,
+          is_active: IsNull(),
+          starts_at: LessThanOrEqual(now),
+          ends_at: MoreThanOrEqual(now),
+        },
+      ],
       order: { created_at: 'DESC' },
     });
+
+    return offers;
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   private hasActiveOffer(product: Product): boolean {
     const offer = product.offer;
-    if (!offer || !offer.is_active) return false;
+    if (!offer) return false;
+
+    if (offer.is_active === false) return false;
+
     const now = new Date();
     const started = !offer.starts_at || offer.starts_at <= now;
     const notEnded = !offer.ends_at || offer.ends_at >= now;
+
     return started && notEnded;
   }
 
   private attachOfferPrice(
     product: Product,
-  ): Product & { final_price?: number } {
-    if (!this.hasActiveOffer(product)) return product;
+  ): Product & { final_price?: number; offer: Offer | null } {
+    if (!this.hasActiveOffer(product)) {
+      return { ...product, offer: null };
+    }
 
     const offer = product.offer!;
     const price = Number(product.price);
@@ -309,7 +388,7 @@ export class ProductsService {
         break;
     }
 
-    return { ...product, final_price };
+    return { ...product, final_price, offer };
   }
 
   private validateOfferValues(dto: CreateOfferDto): void {
@@ -331,5 +410,52 @@ export class ProductsService {
           'La cantidad del bundle debe ser mínimo 2',
         );
     }
+  }
+
+  private async validateNoDateOverlap(
+    productId: number,
+    startsAtStr?: string | null,
+    endsAtStr?: string | null,
+    excludeOfferId?: number,
+  ): Promise<void> {
+    const startsAt = startsAtStr ? new Date(startsAtStr) : new Date();
+    const endsAt = endsAtStr ? new Date(endsAtStr) : null;
+
+    const existingOffers = await this.offerRepository.find({
+      where: { productId },
+    });
+
+    for (const existing of existingOffers) {
+      if (existing.id === excludeOfferId) continue;
+      if (existing.is_active === false) continue;
+      if (existing.ends_at && existing.ends_at < new Date()) continue;
+
+      const existingStart = existing.starts_at || new Date();
+      const existingEnd = existing.ends_at;
+
+      const overlap = this.checkDateOverlap(
+        startsAt,
+        endsAt,
+        existingStart,
+        existingEnd,
+      );
+
+      if (overlap) {
+        throw new ConflictException(
+          'Esta oferta se sobrepon con otra oferta existente. Verifique las fechas.',
+        );
+      }
+    }
+  }
+
+  private checkDateOverlap(
+    start1: Date,
+    end1: Date | null,
+    start2: Date,
+    end2: Date | null,
+  ): boolean {
+    if (!end1 && !end2) return true;
+    if (!end1 || !end2) return true;
+    return start1 < end2 && start2 < end1;
   }
 }

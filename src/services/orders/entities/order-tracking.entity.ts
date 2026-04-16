@@ -21,7 +21,7 @@ export class OrderTracking {
   @JoinColumn({ name: 'order_id' })
   order: Order;
 
-  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PROCESANDO })
+  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.CONFIRMADO })
   status: OrderStatus;
 
   @Column({ type: 'text', nullable: true })
