@@ -53,8 +53,8 @@ export class CartService {
         },
         quantity: item.quantity,
       })),
-      success_url: `http://localhost:4200/cart?success=true&addressId=${addressId}`,
-      cancel_url: `http://localhost:4200/cart?canceled=true`,
+      success_url: `http://www.sweetylust.com/cart?success=true&addressId=${addressId}`,
+      cancel_url: `http://www.sweetylust.com/cart?canceled=true`,
     });
 
     return { url: session.url };
