@@ -83,7 +83,7 @@ export class CartService {
   }
 
   /**Pago para moviles */
-  async confirmPaymentMobile(paymentIntentId: number) {
+  async confirmPaymentMobile(paymentIntentId: string) {
     const paymentIntent =
       await this.stripe.paymentIntents.retrieve(paymentIntentId);
 

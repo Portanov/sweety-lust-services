@@ -1,7 +1,6 @@
-import { IsInt, IsPositive } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class confirmMobileDto {
-  @IsInt()
-  @IsPositive()
-  paymentIntentId: number;
+  @IsString()
+  paymentIntentId: string;
 }
