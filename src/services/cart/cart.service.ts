@@ -60,6 +60,42 @@ export class CartService {
     return { url: session.url };
   }
 
+  /**Crea un intento de pago para mobiles */
+  async createPaymentIntent(userId: number, addressId: number) {
+    const summary = await this.getCartSummary(userId);
+
+    const paymentIntent = await this.stripe.paymentIntents.create({
+      amount: Math.round(summary.total * 100),
+      currency: 'mxn',
+      payment_method_types: ['card'],
+      metadata: {
+        userId: userId.toString(),
+        addressId: addressId.toString(),
+      },
+    });
+
+    return {
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+      ephemeralKey: paymentIntent.ephemeralKey,
+      customerId: paymentIntent.customer,
+    };
+  }
+
+  /**Pago para moviles */
+  async confirmPaymentMobile(paymentIntentId: number) {
+    const paymentIntent =
+      await this.stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (paymentIntent.status !== 'succeeded') {
+      throw new BadRequestException('El pago no fue completado');
+    }
+
+    return {
+      payment_confirmed: true,
+    };
+  }
+
   /** Obtiene el carrito activo del usuario */
   async getActiveCart(userId: number): Promise<Cart> {
     let cart = await this.cartRepository.findOne({

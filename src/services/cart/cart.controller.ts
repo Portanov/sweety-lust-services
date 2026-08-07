@@ -14,6 +14,7 @@ import { AddToCartDto } from './dto/add-to-cart.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { CheckoutDto } from './dto/checkout.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { confirmMobileDto } from './dto/confirm-mobile-dto';
 
 @Controller('cart')
 @UseGuards(JwtAuthGuard)
@@ -91,5 +92,25 @@ export class CartController {
     @Body() checkoutDto: CheckoutDto,
   ) {
     return await this.cartService.checkout(req.user.id, checkoutDto);
+  }
+
+  @Post('create-payment-intent')
+  async confirmPaymentM(
+    @Request() req: { user: { id: number } },
+    @Body() checkoutDto: CheckoutDto,
+  ) {
+    const result = await this.cartService.createPaymentIntent(
+      req.user.id,
+      checkoutDto.addressId,
+    );
+    return result;
+  }
+
+  @Post('confirm-payment-intent')
+  async confirmPaymentIntent(@Body() confirmMobileDto: confirmMobileDto) {
+    const result = await this.cartService.confirmPaymentMobile(
+      confirmMobileDto.paymentIntentId,
+    );
+    return result;
   }
 }
