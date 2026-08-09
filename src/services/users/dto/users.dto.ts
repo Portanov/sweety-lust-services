@@ -1,15 +1,14 @@
 import {
   IsEmail,
-  IsInt,
   IsOptional,
   IsString,
   IsDateString,
   MaxLength,
-  Min,
   Matches,
   Length,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { Column } from 'typeorm';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -23,9 +22,7 @@ export class UpdateProfileDto {
   email?: string;
 
   @IsOptional()
-  @IsInt()
-  @Min(1000000000)
-  @Transform(({ value }: { value: unknown }) => Number(value))
+  @Column({ type: 'bigint', nullable: true })
   phone?: number;
 
   @IsOptional()
@@ -55,9 +52,7 @@ export class CreateUserDto {
   @Length(6, 100)
   password: string;
 
-  @IsInt()
-  @Min(1000000000)
-  @Transform(({ value }: { value: unknown }) => Number(value))
+  @Column({ type: 'bigint', nullable: true })
   phone: number;
 
   @IsDateString()
