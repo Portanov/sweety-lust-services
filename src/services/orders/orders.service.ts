@@ -91,6 +91,37 @@ export class OrdersService {
     };
   }
 
+  async getOrderPackingProducts(orderId: number) {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: ['items', 'items.product', 'address', 'tracking'],
+    });
+
+    if (!order) throw new NotFoundException('Orden no encontrada');
+    if (order.status == OrderStatus.CONFIRMADO)
+      throw new BadRequestException('Orden ya empacada.');
+
+    return {
+      products: order.items,
+    };
+  }
+
+  async markAsConfirmed(orderId: number) {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: ['items', 'items.product', 'address', 'tracking'],
+    });
+
+    if (!order) throw new NotFoundException('Orden no encontrada');
+
+    const event = this.addTracking(orderId, {
+      status: OrderStatus.CONFIRMADO,
+      note: 'Tu pedido ha sido empacado.',
+    });
+
+    return event;
+  }
+
   // ── Para administradores ──────────────────────────────────────────────────
 
   async getAllOrders() {

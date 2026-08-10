@@ -52,6 +52,16 @@ export class OrdersController {
     return this.ordersService.getPublicTracking(id);
   }
 
+  @Get(':id/products')
+  getPublicProducts(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.getOrderPackingProducts(id);
+  }
+
+  @Get(':id/finish-packing')
+  finishPacking(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.markAsConfirmed(id);
+  }
+
   // ── Rutas de administración ───────────────────────────────────────────────
 
   @Get()

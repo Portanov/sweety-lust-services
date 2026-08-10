@@ -11,6 +11,7 @@ import { CartModule } from './services/cart/cart.module';
 import { CacheModule } from './services/common/cache/cache.module';
 import { FavoritesModule } from './services/favorite/favorites.module';
 import { NotificationsModule } from './services/notifications/notifications.module';
+import { WebsocketModule } from './services/websocket/websocket.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { NotificationsModule } from './services/notifications/notifications.modu
     CartModule,
     FavoritesModule,
     NotificationsModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],
