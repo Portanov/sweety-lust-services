@@ -10,6 +10,7 @@ import { OrdersModule } from './services/orders/orders.module';
 import { CartModule } from './services/cart/cart.module';
 import { CacheModule } from './services/common/cache/cache.module';
 import { FavoritesModule } from './services/favorite/favorites.module';
+import { NotificationsModule } from './services/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { FavoritesModule } from './services/favorite/favorites.module';
     OrdersModule,
     CartModule,
     FavoritesModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
