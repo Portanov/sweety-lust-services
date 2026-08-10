@@ -11,24 +11,61 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import {
-  DeviceType,
-  UserNotification,
-} from './entities/user-notification.entity';
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsNotEmpty,
+  MaxLength,
+} from 'class-validator';
+import { UserNotification } from './entities/user-notification.entity';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FcmService, NotificationPayload } from './fmc.service';
 import { UserNotificationService } from './user-notfication.service';
+import { DeviceType } from './entities/user-notification.entity';
+
+interface AuthenticatedRequest {
+  user: {
+    id: number;
+  };
+}
 
 class RegisterDeviceDto {
-  fcmToken: string;
-  deviceType: DeviceType;
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  fcmToken!: string;
+
+  @IsEnum(DeviceType)
+  deviceType!: DeviceType;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
   deviceName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
   osVersion?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
   deviceId?: string;
 }
 
 class SendTestNotificationDto {
-  title: string;
-  body: string;
+  @IsString()
+  @MaxLength(150)
+  title!: string;
+
+  @IsString()
+  @MaxLength(1000)
+  body!: string;
+
+  @IsOptional()
+  @IsObject()
   data?: Record<string, string>;
 }
 
@@ -48,7 +85,7 @@ export class NotificationsController {
   @HttpCode(HttpStatus.CREATED)
   async registerDevice(
     @Body() dto: RegisterDeviceDto,
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
   ): Promise<{ message: string; device: UserNotification }> {
     const userId = req.user.id;
 
@@ -68,7 +105,7 @@ export class NotificationsController {
    * GET /notifications/devices
    */
   @Get('devices')
-  async getUserDevices(@Req() req): Promise<{
+  async getUserDevices(@Req() req: AuthenticatedRequest): Promise<{
     devices: UserNotification[];
     count: number;
   }> {
@@ -106,7 +143,7 @@ export class NotificationsController {
   @HttpCode(HttpStatus.OK)
   async sendTestNotification(
     @Body() dto: SendTestNotificationDto,
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
   ): Promise<{ message: string; result: any }> {
     const userId = req.user.id;
 
