@@ -9,6 +9,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { fastifyCompress } from '@fastify/compress';
 import type { FastifyRequest } from 'fastify';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -63,6 +64,8 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
+
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   app.useGlobalPipes(
     new ValidationPipe({
