@@ -8,12 +8,14 @@ import { OrdersController } from './orders.controller';
 import { ProductsModule } from '../products/products.module';
 import { ConfigModule } from '@nestjs/config';
 import { EncryptionService } from '../common/encryption.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order, OrderTracking, OrderItem]),
     ProductsModule,
     ConfigModule,
+    NotificationsModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService, EncryptionService],

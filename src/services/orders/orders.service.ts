@@ -14,6 +14,7 @@ import { Product } from '../products/entities/product.entity';
 import { DeliveryAddress } from '../addresses/entities/delivery-address.entity';
 import { EncryptionService } from '../common/encryption.service';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { FcmService, NotificationPayload } from '../notifications/fmc.service';
 
 export class AddTrackingDto {
   @IsEnum(OrderStatus)
@@ -36,6 +37,7 @@ export class OrdersService {
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
     private readonly encryption: EncryptionService,
+    private readonly fmcService: FcmService,
   ) {}
 
   // ── Para el usuario ────────────────────────────────────────────────────────
@@ -128,6 +130,21 @@ export class OrdersService {
     });
     await this.trackingRepository.save(event);
     await this.orderRepository.update(orderId, { status: dto.status });
+
+    const payload: NotificationPayload = {
+      title: `Pedido #${orderId}`,
+      body: `Tu pedido ha sido ${dto.status}`,
+    };
+
+    try {
+      const resultado = await this.fmcService.sendNotificationToUser(
+        order.userId,
+        payload,
+      );
+      console.log(`Notificación procesada: ${resultado.success} enviadas.`);
+    } catch (error) {
+      console.log('Fallo al intentar enviar la notificación', error);
+    }
 
     return event;
   }
