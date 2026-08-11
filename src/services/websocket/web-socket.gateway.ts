@@ -229,7 +229,7 @@ export class WebsocketGateway
   private async fetchOrderProducts(orderBarcode: string): Promise<any> {
     try {
       const response = await fetch(
-        `https://api.sweetylust.com/api/orders/${orderBarcode}/products`,
+        `https://api.sweetylust.com/api/ordersp/${orderBarcode}/products`,
       );
 
       if (!response.ok) {
@@ -285,7 +285,7 @@ export class WebsocketGateway
   private async finishOrderPacking(orderBarcode: string): Promise<void> {
     try {
       const response = await fetch(
-        `https://api.sweetylust.com/api/orders/${orderBarcode}/finish-packing`,
+        `https://api.sweetylust.com/api/ordersp/${orderBarcode}/finish-packing`,
         {
           method: 'POST',
           headers: {

@@ -9,6 +9,7 @@ import { ProductsModule } from '../products/products.module';
 import { ConfigModule } from '@nestjs/config';
 import { EncryptionService } from '../common/encryption.service';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { PublicOrdersController } from './publicorders.controller';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     ConfigModule,
     NotificationsModule,
   ],
-  controllers: [OrdersController],
+  controllers: [PublicOrdersController, OrdersController],
   providers: [OrdersService, EncryptionService],
   exports: [OrdersService],
 })
