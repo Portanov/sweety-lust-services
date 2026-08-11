@@ -114,10 +114,30 @@ export class OrdersService {
 
     if (!order) throw new NotFoundException('Orden no encontrada');
 
-    const event = this.addTracking(orderId, {
+    const event = this.trackingRepository.create({
+      orderId,
       status: OrderStatus.CONFIRMADO,
       note: 'Tu pedido ha sido empacado.',
     });
+    await this.trackingRepository.save(event);
+    await this.orderRepository.update(orderId, {
+      status: OrderStatus.CONFIRMADO,
+    });
+
+    const payload: NotificationPayload = {
+      title: `Pedido #${orderId}`,
+      body: `Tu pedido ha sido ${OrderStatus.CONFIRMADO}`,
+    };
+
+    try {
+      const resultado = await this.fmcService.sendNotificationToUser(
+        order.userId,
+        payload,
+      );
+      console.log(`Notificación procesada: ${resultado.success} enviadas.`);
+    } catch (error) {
+      console.log('Fallo al intentar enviar la notificación', error);
+    }
 
     return event;
   }
