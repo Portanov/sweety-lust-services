@@ -287,7 +287,7 @@ export class WebsocketGateway
       const response = await fetch(
         `https://api.sweetylust.com/api/ordersp/${orderBarcode}/finish-packing`,
         {
-          method: 'POST',
+          method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
