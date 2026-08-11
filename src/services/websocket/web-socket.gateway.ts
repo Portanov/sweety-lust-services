@@ -229,7 +229,7 @@ export class WebsocketGateway
   private async fetchOrderProducts(orderBarcode: string): Promise<any> {
     try {
       const response = await fetch(
-        `http://api.sweetylust.com/api/orders/${orderBarcode}/products`,
+        `https://api.sweetylust.com/api/orders/${orderBarcode}/products`,
       );
 
       if (!response.ok) {
@@ -285,7 +285,7 @@ export class WebsocketGateway
   private async finishOrderPacking(orderBarcode: string): Promise<void> {
     try {
       const response = await fetch(
-        `http://api.sweetylust.com/api/orders/${orderBarcode}/finish-packing`,
+        `https://api.sweetylust.com/api/orders/${orderBarcode}/finish-packing`,
         {
           method: 'POST',
           headers: {
@@ -326,7 +326,7 @@ export class WebsocketGateway
 
       const qrData = {
         roomId: roomId,
-        url: `http://api.sweetylust.com/connect/${roomId}`,
+        url: `https://api.sweetylust.com/connect/${roomId}`,
         tvName: data.tvName || 'TV sin nombre',
         timestamp: new Date().toISOString(),
       };
