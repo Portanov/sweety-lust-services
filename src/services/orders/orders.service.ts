@@ -18,7 +18,7 @@ import { FcmService, NotificationPayload } from '../notifications/fmc.service';
 
 export class AddTrackingDto {
   @IsEnum(OrderStatus)
-  status: OrderStatus;
+  status: OrderStatus = OrderStatus.PROCESANDO;
 
   @IsOptional()
   @IsString()
@@ -38,7 +38,7 @@ export class OrdersService {
     private readonly productRepository: Repository<Product>,
     private readonly encryption: EncryptionService,
     private readonly fmcService: FcmService,
-  ) {}
+  ) { }
 
   // ── Para el usuario ────────────────────────────────────────────────────────
 
@@ -245,6 +245,72 @@ export class OrdersService {
     return this.applyCancel(order);
   }
 
+  async getTop10BestSellingProductsCurrentMonth() {
+    const { startDate, endDate } = this.getCurrentMonthRange();
+
+    const raw = await this.orderItemRepository
+      .createQueryBuilder('orderItem')
+      .innerJoin('orderItem.order', 'order')
+      .innerJoin('orderItem.product', 'product')
+      .select('product.id', 'productId')
+      .addSelect('product.title', 'name')
+      .addSelect('product.image', 'image')
+      .addSelect('SUM(orderItem.quantity)', 'soldQuantity')
+      .where('order.created_at BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .andWhere('order.status != :cancelledStatus', {
+        cancelledStatus: OrderStatus.CANCELADO,
+      })
+      .groupBy('product.id')
+      .addGroupBy('product.title')
+      .addGroupBy('product.image')
+      .orderBy('soldQuantity', 'DESC')
+      .limit(10)
+      .getRawMany<{
+        productId: string;
+        name: string;
+        image: string;
+        soldQuantity: string;
+      }>();
+
+    return raw.map((item) => ({
+      productId: Number(item.productId),
+      name: item.name,
+      image: item.image,
+      soldQuantity: Number(item.soldQuantity),
+    }));
+  }
+
+  async getDailySalesCurrentMonth() {
+    const { startDate, endDate } = this.getCurrentMonthRange();
+
+    const orders = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('order.created_at', 'created_at')
+      .where('order.created_at BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .andWhere('order.status != :cancelledStatus', {
+        cancelledStatus: OrderStatus.CANCELADO,
+      })
+      .orderBy('order.created_at', 'ASC')
+      .getRawMany<{ created_at: string | Date }>();
+
+    const totalsByDay = new Map<string, number>();
+    for (const order of orders) {
+      const day = this.extractDayKey(order.created_at);
+      totalsByDay.set(day, (totalsByDay.get(day) ?? 0) + 1);
+    }
+
+    return this.buildDailyRange(startDate, endDate).map((day) => ({
+      day,
+      salesCount: totalsByDay.get(day) ?? 0,
+    }));
+  }
+
   private async applyCancel(order: Order) {
     for (const item of order.items) {
       await this.productRepository.increment(
@@ -310,10 +376,10 @@ export class OrdersService {
       address: this.decryptAddress(order.address ?? null),
       user: order.user
         ? {
-            id: order.user.id,
-            username: order.user.username,
-            email: order.user.email,
-          }
+          id: order.user.id,
+          username: order.user.username,
+          email: order.user.email,
+        }
         : undefined,
       items: (order.items ?? []).map((item) => ({
         id: item.id,
@@ -323,5 +389,42 @@ export class OrdersService {
         product: item.product,
       })),
     };
+  }
+
+  private getCurrentMonthRange() {
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    endDate.setHours(23, 59, 59, 999);
+
+    return { startDate, endDate };
+  }
+
+  private formatDateOnly(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private extractDayKey(dateValue: string | Date) {
+    if (dateValue instanceof Date) {
+      return dateValue.toISOString().slice(0, 10);
+    }
+
+    return String(dateValue).slice(0, 10);
+  }
+
+  private buildDailyRange(startDate: Date, endDate: Date) {
+    const dates: string[] = [];
+    const cursor = new Date(startDate);
+    cursor.setHours(0, 0, 0, 0);
+
+    while (cursor <= endDate) {
+      dates.push(this.formatDateOnly(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return dates;
   }
 }

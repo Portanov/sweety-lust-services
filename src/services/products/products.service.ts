@@ -23,6 +23,7 @@ import { ProductCategory } from './entities/product-category.enum';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateOfferDto, UpdateOfferDto } from './dto/offer.dto';
+import Fuse from 'fuse.js';
 
 export interface ProductFilters {
   search?: string;
@@ -61,7 +62,6 @@ export class ProductsService {
 
     const where: FindOptionsWhere<Product> = {};
 
-    if (search) where.title = Like(`%${search}%`);
     if (category) where.category = category;
     if (inStock) where.stock = MoreThan(0);
 
@@ -77,6 +77,30 @@ export class ProductsService {
       where,
       order: { created_at: 'DESC' },
     });
+
+    if (search?.trim()) {
+      const fuse = new Fuse(products, {
+        keys: [
+          {
+            name: 'title',
+            weight: 0.7,
+          },
+          {
+            name: 'description',
+            weight: 0.2,
+          },
+          {
+            name: 'category',
+            weight: 0.1,
+          },
+        ],
+        threshold: 0.3,
+        ignoreLocation: true,
+        includeScore: true,
+      });
+
+      products = fuse.search(search).map((result) => result.item);
+    }
 
     if (onSale) {
       products = products.filter((p) => this.hasActiveOffer(p));

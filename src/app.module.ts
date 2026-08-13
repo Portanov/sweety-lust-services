@@ -12,6 +12,7 @@ import { CacheModule } from './services/common/cache/cache.module';
 import { FavoritesModule } from './services/favorite/favorites.module';
 import { NotificationsModule } from './services/notifications/notifications.module';
 import { WebsocketModule } from './services/websocket/websocket.module';
+import { SupportModule } from './services/support/support.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { WebsocketModule } from './services/websocket/websocket.module';
     FavoritesModule,
     NotificationsModule,
     WebsocketModule,
+    SupportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

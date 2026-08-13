@@ -34,7 +34,7 @@ export class ProductsController {
     });
   }
 
-  // ✅ Devuelve todas las categorías con su conteo de productos
+  // Devuelve todas las categorías con su conteo de productos
   // GET /api/products/categories
   @Get('categories')
   @Public()

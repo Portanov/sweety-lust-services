@@ -18,7 +18,7 @@ import { UserRole } from 'src/auth/entities/user.entity';
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(private readonly ordersService: OrdersService) { }
 
   // ── Rutas del usuario autenticado ─────────────────────────────────────────
 
@@ -69,6 +69,20 @@ export class OrdersController {
   @Roles(UserRole.ADMIN)
   getAllOrders() {
     return this.ordersService.getAllOrders();
+  }
+
+  @Get('admin/top-selling-products')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  getTopSellingProductsCurrentMonth() {
+    return this.ordersService.getTop10BestSellingProductsCurrentMonth();
+  }
+
+  @Get('admin/daily-sales-current-month')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  getDailySalesCurrentMonth() {
+    return this.ordersService.getDailySalesCurrentMonth();
   }
 
   @Get(':id')
