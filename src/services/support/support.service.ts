@@ -20,7 +20,7 @@ export class SupportService {
     private readonly supportRepository: Repository<Support>,
     @InjectRepository(Changelog)
     private readonly changelogRepository: Repository<Changelog>,
-  ) { }
+  ) {}
 
   async create(dto: CreateSupportDto): Promise<boolean> {
     try {

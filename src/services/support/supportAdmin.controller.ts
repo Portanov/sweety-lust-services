@@ -25,7 +25,7 @@ import { SupportStatus } from './entities/support-status.enum';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class SupportAdminController {
-  constructor(private readonly supportService: SupportService) { }
+  constructor(private readonly supportService: SupportService) {}
 
   // GET /api/admin/support
   // GET /api/admin/support?search=vestido

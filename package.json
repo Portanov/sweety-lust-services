@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@fastify/compress": "^8.3.1",
+    "@fastify/cookie": "^11.1.2",
     "@fastify/helmet": "^13.0.2",
     "@fastify/rate-limit": "^10.3.0",
     "@keyv/redis": "^5.1.6",
@@ -37,10 +38,11 @@
     "@nestjs/platform-socket.io": "^11.1.28",
     "@nestjs/typeorm": "^11.0.0",
     "@nestjs/websockets": "^11.1.28",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
     "cache-manager": "^7.2.8",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "dotenv": "^17.4.2",
     "fastify": "^5.8.4",
     "firebase-admin": "^14.2.0",
     "fuse.js": "^7.5.0",
@@ -67,6 +69,7 @@
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
     "@types/bcrypt": "^6.0.0",
+    "@types/bcryptjs": "^3.0.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
@@ -110,6 +113,11 @@
       "@nestjs/common": "^11.1.17",
       "@nestjs/core": "^11.1.17",
       "@nestjs/platform-fastify": "^11.1.17"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@firebase/util",
+      "@nestjs/core",
+      "protobufjs"
+    ]
   }
 }

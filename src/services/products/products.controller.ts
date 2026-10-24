@@ -62,7 +62,7 @@ export class ProductsController {
 
   @Get(':id')
   @Public()
-  findOne(@Param('id') id: string) {
-    return this.productsService.findOne(+id);
+  findOne(@Param('id') id: number) {
+    return this.productsService.findOne(id);
   }
 }

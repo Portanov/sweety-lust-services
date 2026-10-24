@@ -1,10 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
+import { Strategy } from 'passport-jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
+import { FastifyRequest } from 'fastify';
 
 interface JwtPayload {
   sub: number;
@@ -13,18 +13,23 @@ interface JwtPayload {
   username: string;
 }
 
+const cookieExtractor = (req: FastifyRequest): string | null => {
+  const raw = req?.cookies?.['access_token'];
+  if (!raw) return null;
+  const unsigned = req.unsignCookie(raw);
+  return unsigned.valid ? unsigned.value : null;
+};
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    private configService: ConfigService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: cookieExtractor,
       ignoreExpiration: false,
-      secretOrKey:
-        configService.get<string>('JWT_SECRET') ?? 'change_this_secret',
+      secretOrKey: process.env.JWT_SECRET ?? '',
     });
   }
 

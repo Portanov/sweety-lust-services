@@ -19,7 +19,12 @@ interface ConnectedDevice {
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: [
+      'http://localhost:4200',
+      'http://localhost:5500',
+      'https://sweetylust.com',
+      'https://api.sweetylust.com',
+    ],
   },
   namespace: '/tv-connection',
 })
