@@ -70,6 +70,7 @@ async function bootstrap() {
     origin: [
       'http://localhost:4200',
       'https://sweetylust.com',
+      'https://www.sweetylust.com',
       'https://api.sweetylust.com',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
