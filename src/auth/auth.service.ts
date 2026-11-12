@@ -138,21 +138,30 @@ export class AuthService {
       throw new UnauthorizedException('Token expirado o inválido');
     }
 
-    const verificationCode = await this.verificationCodeRepository.findOne({
-      where: {
-        email: dto.email,
-        code: dto.pin,
-        is_used: false,
-        expires_at: MoreThan(new Date()),
-      },
-    });
+    const isProduction = process.env.NODE_ENV === 'production';
+    const testOtp = process.env.TEST_OTP_CODE;
+    const isValidTestOtp =
+      !isProduction && !!testOtp && dto.pin === testOtp;
 
-    if (!verificationCode) {
+    const verificationCode = isValidTestOtp
+      ? null
+      : await this.verificationCodeRepository.findOne({
+          where: {
+            email: dto.email,
+            code: dto.pin,
+            is_used: false,
+            expires_at: MoreThan(new Date()),
+          },
+        });
+
+    if (!verificationCode && !isValidTestOtp) {
       throw new BadRequestException('PIN inválido o expirado');
     }
 
-    verificationCode.is_used = true;
-    await this.verificationCodeRepository.save(verificationCode);
+    if (verificationCode) {
+      verificationCode.is_used = true;
+      await this.verificationCodeRepository.save(verificationCode);
+    }
 
     const user = await this.userRepository.findOne({
       where: { email: dto.email },
