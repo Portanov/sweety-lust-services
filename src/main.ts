@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import {
   FastifyAdapter,
@@ -10,9 +11,16 @@ import rateLimit from '@fastify/rate-limit';
 import { fastifyCompress } from '@fastify/compress';
 import type { FastifyRequest } from 'fastify';
 import { IoAdapter } from '@nestjs/platform-socket.io';
+import fastifyCookie, { FastifyCookieOptions } from '@fastify/cookie';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+
+  const cookieSecret = process.env.COOKIE_SECRET;
+
+  if (!cookieSecret) {
+    throw new Error('COOKIE_SECRET no está configurado');
+  }
 
   // Inicializamos el adaptador de Fastify
   const adapter = new FastifyAdapter({ logger: true });
@@ -54,6 +62,10 @@ async function bootstrap() {
     adapter,
   );
 
+  await app.register(fastifyCookie as any, {
+    secret: 'tu-secreto',
+  } as FastifyCookieOptions);
+
   app.enableCors({
     origin: [
       'http://localhost:4200',
@@ -82,4 +94,7 @@ async function bootstrap() {
   logger.log('🚀 Servidor corriendo en http://localhost:3000/api');
 }
 
-bootstrap();
+void bootstrap().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

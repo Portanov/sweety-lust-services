@@ -7,7 +7,4 @@ export class VerifyPinDto {
   @IsString()
   @Length(6, 6)
   pin: string;
-
-  @IsString()
-  temp_token: string;
 }

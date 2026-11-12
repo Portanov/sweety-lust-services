@@ -7,14 +7,13 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { User, UserRole } from './entities/user.entity';
 import { VerificationCode } from './entities/verification-code.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginFirstStepDto } from './dto/login-first-step.dto';
 import { VerifyPinDto } from './dto/verify-pin.dto';
-import { LoginResponseDto } from './dto/login-response.dto';
 import { EmailService } from './email/email.service';
 
 @Injectable()
@@ -26,7 +25,7 @@ export class AuthService {
     private readonly verificationCodeRepository: Repository<VerificationCode>,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
-  ) {}
+  ) { }
 
   async register(dto: RegisterDto): Promise<{ message: string }> {
     const exists = await this.userRepository.findOne({
@@ -118,10 +117,16 @@ export class AuthService {
     };
   }
 
-  async verifyPin(dto: VerifyPinDto): Promise<LoginResponseDto> {
+  async verifyPin(
+    dto: VerifyPinDto,
+    tempToken: string,
+  ): Promise<{
+    access_token: string;
+    user: { id: number; username: string; email: string; role: string };
+  }> {
     let tempPayload: any;
     try {
-      tempPayload = this.jwtService.verify(dto.temp_token);
+      tempPayload = this.jwtService.verify(tempToken);
       if (tempPayload.type !== 'temp' || tempPayload.step !== 'first') {
         throw new UnauthorizedException('Token inválido');
       }
@@ -133,21 +138,30 @@ export class AuthService {
       throw new UnauthorizedException('Token expirado o inválido');
     }
 
-    const verificationCode = await this.verificationCodeRepository.findOne({
-      where: {
-        email: dto.email,
-        code: dto.pin,
-        is_used: false,
-        expires_at: MoreThan(new Date()),
-      },
-    });
+    const isProduction = process.env.NODE_ENV === 'production';
+    const testOtp = process.env.TEST_OTP_CODE;
+    const isValidTestOtp =
+      !isProduction && !!testOtp && dto.pin === testOtp;
 
-    if (!verificationCode) {
+    const verificationCode = isValidTestOtp
+      ? null
+      : await this.verificationCodeRepository.findOne({
+          where: {
+            email: dto.email,
+            code: dto.pin,
+            is_used: false,
+            expires_at: MoreThan(new Date()),
+          },
+        });
+
+    if (!verificationCode && !isValidTestOtp) {
       throw new BadRequestException('PIN inválido o expirado');
     }
 
-    verificationCode.is_used = true;
-    await this.verificationCodeRepository.save(verificationCode);
+    if (verificationCode) {
+      verificationCode.is_used = true;
+      await this.verificationCodeRepository.save(verificationCode);
+    }
 
     const user = await this.userRepository.findOne({
       where: { email: dto.email },
